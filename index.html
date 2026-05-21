@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Чеклист бара — Мона</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
+
+  :root {
+    --bg: #0e0e0e;
+    --surface: #161616;
+    --border: #2a2a2a;
+    --accent: #c8a96e;
+    --accent-dim: rgba(200, 169, 110, 0.12);
+    --text: #e8e4dc;
+    --text-dim: #7a7670;
+    --green: #4caf78;
+    --red: #e05a5a;
+    --daily: #4a9eca;
+    --weekly: #c87a4e;
+    --monthly: #9b7ec8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 32px 24px 64px;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    margin-top: 6px;
+  }
+
+  .meta {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .date-display {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: right;
+  }
+
+  #current-date {
+    display: block;
+    font-size: 14px;
+    color: var(--accent);
+    margin-top: 4px;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+
+  .tab {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s ease;
+  }
+
+  .tab:hover { color: var(--text); }
+
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab[data-freq="daily"].active { color: var(--daily); border-bottom-color: var(--daily); }
+  .tab[data-freq="weekly"].active { color: var(--weekly); border-bottom-color: var(--weekly); }
+  .tab[data-freq="monthly"].active { color: var(--monthly); border-bottom-color: var(--monthly); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .section {
+    margin-bottom: 28px;
+  }
+
+  .section-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    padding-left: 4px;
+    border-left: 2px solid var(--border);
+    padding-left: 10px;
+  }
+
+  .items { display: flex; flex-direction: column; gap: 2px; }
+
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    user-select: none;
+  }
+
+  .item:hover { border-color: #3a3a3a; background: #1c1c1c; }
+
+  .item.checked {
+    background: rgba(76, 175, 120, 0.05);
+    border-color: rgba(76, 175, 120, 0.2);
+  }
+
+  .item.checked .item-text {
+    color: var(--text-dim);
+    text-decoration: line-through;
+    text-decoration-color: rgba(122, 118, 112, 0.5);
+  }
+
+  .checkbox {
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid var(--border);
+    border-radius: 3px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.1s ease;
+  }
+
+  .item.checked .checkbox {
+    background: var(--green);
+    border-color: var(--green);
+  }
+
+  .checkmark {
+    display: none;
+    width: 10px;
+    height: 10px;
+  }
+
+  .item.checked .checkmark { display: block; }
+
+  .item-text {
+    font-size: 13.5px;
+    font-weight: 400;
+    line-height: 1.4;
+    flex: 1;
+    transition: color 0.1s ease;
+  }
+
+  .tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .tag-sanpin { background: rgba(224,90,90,0.15); color: #e05a5a; }
+  .tag-haccp { background: rgba(76,175,120,0.12); color: #4caf78; }
+  .tag-equipment { background: rgba(74,158,202,0.12); color: var(--daily); }
+  .tag-quality { background: rgba(200,169,110,0.15); color: var(--accent); }
+
+  .progress-bar {
+    height: 2px;
+    background: var(--border);
+    border-radius: 1px;
+    margin-bottom: 28px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 1px;
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+
+  .stats {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .stat span {
+    color: var(--text);
+    font-size: 20px;
+    display: block;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .reset-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s ease;
+    margin-bottom: 28px;
+  }
+
+  .reset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  @media print {
+    body { background: white; color: black; padding: 20px; }
+    .tabs, .reset-btn { display: none; }
+    .panel { display: block !important; }
+    .item { background: white; border-color: #ccc; page-break-inside: avoid; }
+    .section-title { color: #666; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">Мона / Bar ops</div>
+    <h1>Чеклист бара</h1>
+    <div class="meta">Чистота · Санитария · Соответствие нормам</div>
+  </div>
+  <div class="date-display">
+    Сегодня<span id="current-date"></span>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-freq="daily" onclick="switchTab('daily')">Ежедневно</button>
+  <button class="tab" data-freq="weekly" onclick="switchTab('weekly')">Еженедельно</button>
+  <button class="tab" data-freq="monthly" onclick="switchTab('monthly')">Ежемесячно</button>
+</div>
+
+<!-- DAILY -->
+<div class="panel active" id="panel-daily">
+  <div class="stats">
+    <div class="stat"><span id="daily-done">0</span>Выполнено</div>
+    <div class="stat"><span id="daily-total">0</span>Всего</div>
+    <div class="stat"><span id="daily-pct">0%</span>Прогресс</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="daily-bar"></div></div>
+  <button class="reset-btn" onclick="resetTab('daily')">Сбросить</button>
+
+  <div class="section">
+    <div class="section-title">Открытие — до начала работы</div>
+    <div class="items" id="daily-open">
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Протереть барную стойку (нержавейка) сухой чистой тряпкой</span><span class="tag tag-sanpin">СанПиН</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Проверить чистоту кофемашины: лотки, поддоны, носики группхедов</span><span class="tag tag-equipment">Техника</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Промыть группхеды горячей водой (обратная промывка)</span><span class="tag tag-equipment">Техника</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Проверить кофемолку: остатки кофе, запах, степень помола</span><span class="tag tag-quality">Качество</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Осмотреть бокалы на полках: сколы, загрязнения, следы губной помады</span><span class="tag tag-sanpin">СанПиН</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Протереть полки с бокалами от пыли и капель</span><span class="tag tag-sanpin">СанПиН</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Проверить температуру в барных холодильниках (норма: +2…+6°C)</span><span class="tag tag-haccp">ХАССП</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Зафиксировать показания температуры в журнале ХАССП</span><span class="tag tag-haccp">ХАССП</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Проверить наличие и состояние чистых барных полотенец (мин. 10 шт.)</span><span class="tag tag-sanpin">СанПиН</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Проверить запас моющих средств и дезинфектанта на баре</span><span class="tag tag-sanpin">СанПиН</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Проверить срок годности молока и открытых продуктов в баре</span><span class="tag tag-haccp">ХАССП</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Проверить наличие маркировки на открытых продуктах (дата вскрытия)</span><span class="tag tag-haccp">ХАССП</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Убедиться, что раковина свободна, слив чистый, мыло и бумага есть</span><span class="tag tag-sanpin">СанПиН</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">В течение смены</div>
+    <div class="items" id="daily-shift">
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Промывать питчеры и молочное оборудование после каждого использования</span><span class="tag tag-haccp">ХАССП</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Вытирать стойку после каждого гостя (разводы, капли, крошки)</span><span class="tag tag-quality">Качество</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Бокалы — полировать перед подачей, не брать руками за верхнюю треть</span><span class="tag tag-quality">Качество</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Подбарник и решётка слива — промывать каждые 2 часа</span><span class="tag tag-sanpin">СанПиН</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Не оставлять использованные тряпки и полотенца на стойке</span><span class="tag tag-sanpin">СанПиН</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Пустые бутылки убирать сразу, не накапливать на полу бара</span><span class="tag tag-sanpin">СанПиН</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Холодильник — проверить температуру во время обеденного пика (12:00–14:00)</span><span class="tag tag-haccp">ХАССП</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Закрытие — после смены</div>
+    <div class="items" id="daily-close">
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Обратная промывка кофемашины с химией (таблетки Cafiza / порошок)</span><span class="tag tag-equipment">Техника</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Промыть паровые трубки кофемашины, протереть насухо</span><span class="tag tag-equipment">Техника</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Снять и промыть лотки кофемашины</span><span class="tag tag-equipment">Техника</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Промыть блендер, шейкер, барные ложки, стрейнеры</span><span class="tag tag-sanpin">СанПиН</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Обработать стойку дезинфицирующим раствором, насухо протереть</span><span class="tag tag-sanpin">СанПиН</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Промыть и высушить питчеры (не хранить с молочными остатками)</span><span class="tag tag-haccp">ХАССП</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Убрать открытые продукты в холодильник, промаркировать</span><span class="tag tag-haccp">ХАССП</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Вынести мусор из бара, заменить пакет</span><span class="tag tag-sanpin">СанПиН</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Протереть фасады холодильников и торцы стойки</span><span class="tag tag-quality">Качество</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Сдать грязные полотенца и тряпки в стирку / на замену</span><span class="tag tag-sanpin">СанПиН</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Зафиксировать финальную температуру холодильников в журнале</span><span class="tag tag-haccp">ХАССП</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Подписать чеклист — ФИО, время закрытия</span><span class="tag tag-sanpin">СанПиН</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- WEEKLY -->
+<div class="panel" id="panel-weekly">
+  <div class="stats">
+    <div class="stat"><span id="weekly-done">0</span>Выполнено</div>
+    <div class="stat"><span id="weekly-total">0</span>Всего</div>
+    <div class="stat"><span id="weekly-pct">0%</span>Прогресс</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="weekly-bar" style="background: var(--weekly)"></div></div>
+  <button class="reset-btn" onclick="resetTab('weekly')">Сбросить</button>
+
+  <div class="section">
+    <div class="section-title">Кофемашина и оборудование</div>
+    <div class="items">
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Снять и замочить сетки-диспресорные группхеды в Cafiza (30 мин.)</span><span class="tag tag-equipment">Техника</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Очистить кофемолку: снять бункер, продуть, протереть от кофейных масел</span><span class="tag tag-equipment">Техника</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Промыть молочную систему (если есть автокапучинатор) согласно инструкции</span><span class="tag tag-equipment">Техника</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Проверить и очистить фильтр воды кофемашины</span><span class="tag tag-equipment">Техника</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Холодильники и хранение</div>
+    <div class="items">
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Разобрать холодильники: выбросить просроченное, протереть полки</span><span class="tag tag-haccp">ХАССП</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Обработать внутренние поверхности холодильника дезинфектантом</span><span class="tag tag-haccp">ХАССП</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Проверить уплотнители дверей холодильника (плотность прилегания)</span><span class="tag tag-equipment">Техника</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Провести ревизию бара: сроки годности сиропов, соков, открытых алко</span><span class="tag tag-haccp">ХАССП</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Посуда и инвентарь</div>
+    <div class="items">
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Снять бокалы с полок, протереть держатели и сами полки насухо</span><span class="tag tag-sanpin">СанПиН</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Провести инвентаризацию бокалов: выбросить сколотые и треснутые</span><span class="tag tag-sanpin">СанПиН</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Заменить ветошь и тряпки на баре на свежие</span><span class="tag tag-sanpin">СанПиН</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Зона бара и пол</div>
+    <div class="items">
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Вымыть пол за баром с дезинфицирующим средством</span><span class="tag tag-sanpin">СанПиН</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Протереть фасады нижних ящиков, ручки, торцы стойки</span><span class="tag tag-quality">Качество</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Обработать раковину и слив антибактериальным средством</span><span class="tag tag-sanpin">СанПиН</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Вытереть светильники и подсветку над баром от жира и пыли</span><span class="tag tag-quality">Качество</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- MONTHLY -->
+<div class="panel" id="panel-monthly">
+  <div class="stats">
+    <div class="stat"><span id="monthly-done">0</span>Выполнено</div>
+    <div class="stat"><span id="monthly-total">0</span>Всего</div>
+    <div class="stat"><span id="monthly-pct">0%</span>Прогресс</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="monthly-bar" style="background: var(--monthly)"></div></div>
+  <button class="reset-btn" onclick="resetTab('monthly')">Сбросить</button>
+
+  <div class="section">
+    <div class="section-title">Глубокая чистка</div>
+    <div class="items">
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Полный разбор кофемашины: промывка бойлера, пены, трубок (если есть техник)</span><span class="tag tag-equipment">Техника</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Почистить решётки вентиляции над баром</span><span class="tag tag-sanpin">СанПиН</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Промыть и обработать поверхность зеркальных панелей бара (над стойкой)</span><span class="tag tag-quality">Качество</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Разморозить и промыть морозильный отсек (если есть)</span><span class="tag tag-haccp">ХАССП</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Обработать деревянный пол за баром: мытьё, проверка состояния покрытия</span><span class="tag tag-sanpin">СанПиН</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Документация и соответствие нормам</div>
+    <div class="items">
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Проверить журнал ХАССП: все ли записи сделаны, нет ли пропусков</span><span class="tag tag-haccp">ХАССП</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Проверить наличие актуальных санитарных книжек у барного персонала</span><span class="tag tag-sanpin">СанПиН</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Проверить сертификаты на моющие средства и дезинфектанты</span><span class="tag tag-sanpin">СанПиН</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Провести калибровку термометра для холодильников (проверка точности)</span><span class="tag tag-haccp">ХАССП</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Плановое обслуживание</div>
+    <div class="items">
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Замена фильтра воды кофемашины (если срок вышел по счётчику)</span><span class="tag tag-equipment">Техника</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Вызов сервиса кофемашины (раз в 3 месяца — плановое ТО)</span><span class="tag tag-equipment">Техника</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Проверить состояние барных ножей: заточка, целостность рукоятей</span><span class="tag tag-sanpin">СанПиН</span></div>
+      <div class="item" onclick="toggle(this)"><div class="checkbox"><svg class="checkmark" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="item-text">Ревизия запасов: неликвид, просроченные позиции, списание в систему</span><span class="tag tag-haccp">ХАССП</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const tabs = ['daily', 'weekly', 'monthly'];
+
+  function switchTab(freq) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelector(`.tab[data-freq="${freq}"]`).classList.add('active');
+    document.getElementById(`panel-${freq}`).classList.add('active');
+  }
+
+  function toggle(el) {
+    el.classList.toggle('checked');
+    updateStats();
+  }
+
+  function resetTab(freq) {
+    document.querySelectorAll(`#panel-${freq} .item`).forEach(el => el.classList.remove('checked'));
+    updateStats();
+  }
+
+  function updateStats() {
+    tabs.forEach(freq => {
+      const panel = document.getElementById(`panel-${freq}`);
+      if (!panel) return;
+      const all = panel.querySelectorAll('.item');
+      const done = panel.querySelectorAll('.item.checked');
+      const pct = all.length ? Math.round((done.length / all.length) * 100) : 0;
+      document.getElementById(`${freq}-done`).textContent = done.length;
+      document.getElementById(`${freq}-total`).textContent = all.length;
+      document.getElementById(`${freq}-pct`).textContent = pct + '%';
+      document.getElementById(`${freq}-bar`).style.width = pct + '%';
+    });
+  }
+
+  function setDate() {
+    const d = new Date();
+    const opts = { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' };
+    document.getElementById('current-date').textContent = d.toLocaleDateString('ru-RU', opts);
+  }
+
+  setDate();
+  updateStats();
+</script>
+</body>
+</html>
